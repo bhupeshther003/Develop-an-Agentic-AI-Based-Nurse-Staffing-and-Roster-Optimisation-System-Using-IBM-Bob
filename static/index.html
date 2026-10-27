@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nurse Staffing & Roster Optimisation | IBM Granite AI</title>
+<style>
+/* ── Reset & Base ──────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d2e;--card:#222640;--border:#2e3250;
+  --accent:#4f7cf7;--accent2:#7c5cd8;--success:#22c55e;--warning:#f59e0b;
+  --danger:#ef4444;--text:#e2e8f0;--muted:#8892b0;--white:#ffffff;
+  --header:#161929;
+}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.layout{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:240px;min-width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:56px;min-height:56px;background:var(--header);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px}
+.content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.sidebar-logo{padding:20px 16px 12px;border-bottom:1px solid var(--border)}
+.sidebar-logo h2{font-size:14px;font-weight:700;color:var(--accent);letter-spacing:.5px}
+.sidebar-logo p{font-size:11px;color:var(--muted);margin-top:2px}
+.nav-section{padding:12px 8px 4px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:2px 8px;border-radius:8px;cursor:pointer;transition:.2s;font-size:13px;color:var(--muted)}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{background:rgba(79,124,247,.15);color:var(--accent);font-weight:600}
+.nav-item .icon{width:18px;text-align:center;font-size:15px}
+.sidebar-footer{margin-top:auto;padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center}
+
+/* ── Topbar ─────────────────────────────────────────────────────────────── */
+.topbar-title{font-size:16px;font-weight:700;color:var(--text)}
+.topbar-sub{font-size:12px;color:var(--muted);margin-left:4px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-success{background:rgba(34,197,94,.15);color:var(--success)}
+.badge-warning{background:rgba(245,158,11,.15);color:var(--warning)}
+.badge-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.badge-info{background:rgba(79,124,247,.15);color:var(--accent)}
+
+/* ── Cards & Grid ───────────────────────────────────────────────────────── */
+.cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px}
+.card-value{font-size:28px;font-weight:700;color:var(--text)}
+.card-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.card-icon{float:right;font-size:28px;opacity:.4;margin-top:-4px}
+
+/* ── Sections ───────────────────────────────────────────────────────────── */
+.section{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px}
+.section-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.section-header h3{font-size:14px;font-weight:700}
+.section-header .actions{margin-left:auto;display:flex;gap:8px}
+.section-body{padding:20px}
+
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border)}
+tbody td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+tbody tr:last-child td{border-bottom:none}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3b69e0}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#16a34a}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--border)}
+.btn-warning{background:var(--warning);color:#000}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── AI Panel ───────────────────────────────────────────────────────────── */
+.ai-panel{background:rgba(79,124,247,.07);border:1px solid rgba(79,124,247,.25);border-radius:10px;padding:16px;margin-top:16px}
+.ai-panel-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:700;color:var(--accent)}
+.ai-panel-body{font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap}
+
+/* ── Roster Grid ────────────────────────────────────────────────────────── */
+.roster-grid{overflow-x:auto}
+.roster-table{border-collapse:collapse;min-width:900px;font-size:12px}
+.roster-table th{background:var(--surface);padding:8px 10px;border:1px solid var(--border);font-size:11px;text-align:center;white-space:nowrap}
+.roster-table td{padding:6px 8px;border:1px solid var(--border);vertical-align:top;min-width:100px}
+.shift-cell{display:flex;flex-direction:column;gap:3px}
+.staff-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap}
+.staff-tag.rn-senior{background:rgba(79,124,247,.2);color:#93bbfd}
+.staff-tag.rn-junior{background:rgba(124,92,216,.2);color:#c4b5fd}
+.staff-tag.en{background:rgba(34,197,94,.15);color:#86efac}
+.empty-cell{color:var(--muted);font-size:11px;text-align:center;padding:4px}
+
+/* ── Violations ─────────────────────────────────────────────────────────── */
+.violation-item{display:flex;gap:12px;padding:14px;border-radius:8px;margin-bottom:10px;align-items:flex-start}
+.violation-item.critical{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2)}
+.violation-item.warning{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2)}
+.violation-icon{font-size:18px;min-width:24px;margin-top:2px}
+.violation-body h4{font-size:13px;font-weight:700;margin-bottom:4px}
+.violation-body p{font-size:12px;color:var(--muted);line-height:1.5}
+.violation-actions{margin-left:auto}
+
+/* ── Workload Chart ──────────────────────────────────────────────────────── */
+.workload-bar{height:20px;border-radius:4px;background:var(--accent);transition:.3s;position:relative}
+.workload-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.workload-name{width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.workload-bar-wrap{flex:1;background:var(--surface);border-radius:4px;height:20px;overflow:hidden}
+.workload-count{width:30px;text-align:right;color:var(--muted)}
+.workload-type{width:100px;text-align:right}
+
+/* ── Staff Grid ─────────────────────────────────────────────────────────── */
+.staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.staff-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:.2s}
+.staff-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.staff-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;margin-bottom:10px}
+.staff-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.staff-role{font-size:11px;color:var(--muted)}
+.staff-skills{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.skill-tag{font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(79,124,247,.15);color:var(--accent)}
+
+/* ── Recommendation cards ────────────────────────────────────────────────── */
+.rec-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.rec-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.rec-priority{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;text-transform:uppercase}
+.priority-critical{background:rgba(239,68,68,.2);color:var(--danger)}
+.priority-high{background:rgba(245,158,11,.2);color:var(--warning)}
+.priority-medium{background:rgba(79,124,247,.2);color:var(--accent)}
+.priority-low{background:rgba(34,197,94,.2);color:var(--success)}
+
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:6px}
+.modal p{color:var(--muted);font-size:13px;margin-bottom:20px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group textarea,.form-group select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;transition:.2s;font-family:inherit}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:80px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* ── Spinner ─────────────────────────────────────────────────────────────── */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{position:absolute;inset:0;background:rgba(15,17,23,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;border-radius:12px;gap:12px}
+.loading-overlay .spinner{width:32px;height:32px;border-width:3px}
+.loading-overlay p{color:var(--muted);font-size:13px}
+
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:2000;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;animation:slideIn .3s ease;max-width:340px}
+.toast-success{background:rgba(34,197,94,.9);color:#fff}
+.toast-error{background:rgba(239,68,68,.9);color:#fff}
+.toast-info{background:rgba(79,124,247,.9);color:#fff}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── Page ────────────────────────────────────────────────────────────────── */
+.page{display:none}
+.page.active{display:block}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:22px;font-weight:700}
+.page-header p{color:var(--muted);font-size:13px;margin-top:4px}
+
+/* ── Progress ────────────────────────────────────────────────────────────── */
+.progress{height:8px;background:var(--surface);border-radius:4px;overflow:hidden;margin-top:6px}
+.progress-bar{height:100%;border-radius:4px;transition:width .5s;background:var(--accent)}
+.progress-bar.success{background:var(--success)}
+.progress-bar.warning{background:var(--warning)}
+.progress-bar.danger{background:var(--danger)}
+
+/* ── Status dot ──────────────────────────────────────────────────────────── */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.dot-success{background:var(--success)}
+.dot-warning{background:var(--warning)}
+.dot-danger{background:var(--danger)}
+.dot-info{background:var(--accent)}
+
+/* ── Approval steps ──────────────────────────────────────────────────────── */
+.steps{display:flex;gap:0;margin-bottom:24px}
+.step{flex:1;text-align:center;position:relative}
+.step::after{content:'';position:absolute;top:18px;left:50%;width:100%;height:2px;background:var(--border);z-index:0}
+.step:last-child::after{display:none}
+.step-circle{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-weight:700;font-size:13px;position:relative;z-index:1}
+.step.done .step-circle{background:var(--success);border-color:var(--success);color:#fff}
+.step.active .step-circle{background:var(--accent);border-color:var(--accent);color:#fff}
+.step-label{font-size:11px;color:var(--muted)}
+.step.active .step-label{color:var(--accent);font-weight:600}
+.step.done .step-label{color:var(--success)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h2>🏥 NurseRoster AI</h2>
+    <p>IBM Granite · Agentic AI</p>
+  </div>
+
+  <span class="nav-section">Overview</span>
+  <div class="nav-item active" onclick="showPage('dashboard')">
+    <span class="icon">📊</span> Dashboard
+  </div>
+  <div class="nav-item" onclick="showPage('roster')">
+    <span class="icon">📅</span> Roster Grid
+  </div>
+
+  <span class="nav-section">AI Agents</span>
+  <div class="nav-item" onclick="showPage('agent-staffing')">
+    <span class="icon">👥</span> Staffing Analysis
+  </div>
+  <div class="nav-item" onclick="showPage('agent-coverage')">
+    <span class="icon">🗓️</span> Coverage Planning
+  </div>
+  <div class="nav-item" onclick="showPage('agent-generate')">
+    <span class="icon">⚡</span> Roster Generation
+  </div>
+  <div class="nav-item" onclick="showPage('agent-validate')">
+    <span class="icon">✅</span> Constraint Validation
+  </div>
+  <div class="nav-item" onclick="showPage('agent-workload')">
+    <span class="icon">⚖️</span> Workload Fairness
+  </div>
+  <div class="nav-item" onclick="showPage('agent-optimise')">
+    <span class="icon">🔧</span> Optimisation
+  </div>
+  <div class="nav-item" onclick="showPage('agent-report')">
+    <span class="icon">📋</span> Reports
+  </div>
+
+  <span class="nav-section">Management</span>
+  <div class="nav-item" onclick="showPage('staff')">
+    <span class="icon">🧑‍⚕️</span> Staff Directory
+  </div>
+  <div class="nav-item" onclick="showPage('violations')">
+    <span class="icon">🚨</span> Violations
+    <span id="viol-badge" class="badge badge-danger" style="margin-left:auto;display:none">0</span>
+  </div>
+  <div class="nav-item" onclick="showPage('approval')">
+    <span class="icon">✍️</span> Approval Workflow
+  </div>
+
+  <div class="sidebar-footer">
+    <div>IBM Bob · Healthcare P3</div>
+    <div style="margin-top:2px;color:#4f7cf7;font-weight:600">IBM Granite AI</div>
+  </div>
+</nav>
+
+<!-- ══ MAIN ══════════════════════════════════════════════════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Nurse Staffing & Roster Optimisation System</div>
+      <div class="topbar-sub">40-bed unit · 2-week roster · Agentic AI</div>
+    </div>
+    <div class="topbar-right">
+      <span id="roster-period" class="badge badge-info">Loading...</span>
+      <span id="roster-status-badge" class="badge badge-warning">Draft</span>
+      <button class="btn btn-primary btn-sm" onclick="runAllAgents()">
+        <span>⚡</span> Run All Agents
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── DASHBOARD ──────────────────────────────────────────────────────── -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h1>📊 Dashboard</h1>
+        <p>Hospital nursing roster overview — powered by IBM Granite Agentic AI</p>
+      </div>
+
+      <div class="cards-row" id="summary-cards">
+        <div class="card"><div class="card-icon">📅</div><div class="card-title">Total Assignments</div><div class="card-value" id="kpi-assignments">—</div><div class="card-sub">Shift slots filled</div></div>
+        <div class="card"><div class="card-icon">🚨</div><div class="card-title">Open Violations</div><div class="card-value" id="kpi-violations" style="color:var(--danger)">—</div><div class="card-sub">Requires attention</div></div>
+        <div class="card"><div class="card-icon">⚠️</div><div class="card-title">Critical Violations</div><div class="card-value" id="kpi-critical" style="color:var(--danger)">—</div><div class="card-sub">Immediate action needed</div></div>
+        <div class="card"><div class="card-icon">✅</div><div class="card-title">Roster Status</div><div class="card-value" id="kpi-status" style="font-size:16px;margin-top:4px">—</div><div class="card-sub">Pending manager approval</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="section">
+          <div class="section-header">
+            <span>🤖</span><h3>IBM Granite AI — Quick Insights</h3>
+            <div class="actions"><button class="btn btn-secondary btn-sm" onclick="loadDashboardInsights()">Refresh</button></div>
+          </div>
+          <div class="section-body" id="ai-quick-insights">
+            <p style="color:var(--muted);font-size:13px">Click "Run All Agents" to generate AI-powered roster insights.</p>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-header"><span>📈</span><h3>Agent Pipeline Status</h3></div>
+          <div class="section-body" id="agent-pipeline">
+            <div id="pipeline-steps"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><span>📅</span><h3>Roster Period at a Glance</h3><div class="actions"><button class="btn btn-primary btn-sm" onclick="showPage('roster')">View Full Roster →</button></div></div>
+        <div class="section-body" id="dashboard-roster-preview">
+          <p style="color:var(--muted);font-size:13px">Generate a roster first to see the preview.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ROSTER GRID ─────────────────────────────────────────────────────── -->
+    <div id="page-roster" class="page">
+      <div class="page-header">
+        <h1>📅 Two-Week Roster Grid</h1>
+        <p>Full shift allocation for all staff across the 14-day roster period</p>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <span>📋</span><h3>Roster</h3>
+          <div class="actions">
+            <button class="btn btn-primary btn-sm" onclick="loadRosterGrid()">🔄 Refresh</button>
+            <button class="btn btn-secondary btn-sm" onclick="showPage('approval')">Submit for Approval →</button>
+          </div>
+        </div>
+        <div class="section-body roster-grid" id="roster-grid-container" style="position:relative">
+          <p style="color:var(--muted)">Generate a roster first using the Roster Generation agent.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AGENT: STAFFING ANALYSIS ───────────────────────────────────────── -->
+    <div id="page-agent-staffing" class="page">
+      <div class="page-header">
+        <h1>👥 Agent 1 — Staffing Data Analysis</h1>
+        <p>Analyse staff roles, qualifications, availability, and shift preferences</p>
+      </div>
+      <div class="section" style="position:relative" id="staffing-section">
+        <div class="section-header">
+          <span>🤖</span><h3>Staffing Data Analysis Agent</h3>
+          <div class="actions"><button class="btn btn-primary" onclick="runStaffingAgent()">▶ Run Agent</button></div>
+        </div>
+        <div class="section-body" id="staffing-result">
+          <p style="color:var(--muted)">Click "Run Agent" to analyse staffing data.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AGENT: COVERAGE PLANNING ───────────────────────────────────────── -->
+    <div id="page-agent-coverage" class="page">
+      <div class="page-header">
+        <h1>🗓️ Agent 2 — Coverage Planning</h1>
+        <p>Determine required nurses and skill mix for each shift across the 14-day period</p>
+      </div>
+      <div class="section" style="position:relative" id="coverage-section">
+        <div class="section-header">
+          <span>🤖</span><h3>Coverage Planning Agent</h3>
+          <div class="actions"><button class="btn btn-primary" onclick="runCoverageAgent()">▶ Run Agent</button></div>
+        </div>
+        <div class="section-body" id="coverage-result">
+          <p style="color:var(--muted)">Click "Run Agent" to generate coverage plan.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AGENT: ROSTER GENERATION ───────────────────────────────────────── -->
+    <div id="page-agent-generate" class="page">
+      <div class="page-header">
+        <h1>⚡ Agent 3 — Roster Generation</h1>
+        <p>Generate a draft two-week roster using AI scheduling algorithm</p>
+      </div>
+      <div class="section" style="position:relative" id="generate-section">
+        <div class="section-header">
+          <span>🤖</span><h3>Roster Generation Agent</h3>
+          <div class="actions"><button class="btn btn-primary" onclick="runGenerateAgent()">▶ Generate Roster</button></div>
+        </div>
+        <div class="section-body" id="generate-result">
+          <p style="color:var(--muted)">Click "Generate Roster" to create a draft roster.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AGENT: CONSTRAINT VALIDATION ───────────────────────────────────── -->
+    <div id="page-agent-validate" class="page">
+      <div class="page-header">
+        <h1>✅ Agent 4 — Constraint Validation</h1>
+        <p>Validate roster against rest periods, consecutive shifts, weekly hours, and coverage requirements</p>
+      </div>
+      <div class="section" style="position:relative" id="validate-section">
+        <div class="section-header">
+          <span>🤖</span><h3>Constraint Validation Agent</h3>
+          <div class="actions"><button class="btn btn-primary" onclick="runValidateAgent()">▶ Validate Roster</button></div>
+        </div>
+        <div class="section-body" id="validate-result">
+          <p style="color:var(--muted)">Click "Validate Roster" to check all scheduling constraints.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AGENT: WORKLOAD FAIRNESS ───────────────────────────────────────── -->
+    <div id="page-agent-workload" class="page">
+      <div class="page-header">
+        <h1>⚖️ Agent 5 — Workload Fairness</h1>
+        <p>Analyse shift distribution, hours, night shifts, and weekends across the nursing team</p>
+      </div>
+      <div class="section" style="position:relative" id="workload-section">
+        <div class="section-header">
+          <span>🤖</span><h3>Workload Fairness Agent</h3>
+          <div class="actions"><button class="btn btn-primary" onclick="runWorkloadAgent()">▶ Analyse Fairness</button></div>
+        </div>
+        <div class="section-body" id="workload-result">
+          <p style="color:var(--muted)">Click "Analyse Fairness" to review workload distribution.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AGENT: OPTIMISATION ────────────────────────────────────────────── -->
+    <div id="page-agent-optimise" class="page">
+      <div class="page-header">
+        <h1>🔧 Agent 6 — Roster Optimisation</h1>
+        <p>AI-powered recommendations to resolve violations, coverage gaps, and workload imbalances</p>
+      </div>
+      <div class="section" style="position:relative" id="optimise-section">
+        <div class="section-header">
+          <span>🤖</span><h3>Roster Optimisation Agent</h3>
+          <div class="actions"><button class="btn btn-primary" onclick="runOptimiseAgent()">▶ Optimise Roster</button></div>
+        </div>
+        <div class="section-body" id="optimise-result">
+          <p style="color:var(--muted)">Click "Optimise Roster" to generate improvement recommendations.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AGENT: REPORTS ─────────────────────────────────────────────────── -->
+    <div id="page-agent-report" class="page">
+      <div class="page-header">
+        <h1>📋 Agent 7 — Reports & Analytics</h1>
+        <p>Comprehensive roster reports: coverage matrix, violations summary, workload fairness, optimisation log</p>
+      </div>
+      <div class="section" style="position:relative" id="report-section">
+        <div class="section-header">
+          <span>🤖</span><h3>Reporting Agent</h3>
+          <div class="actions"><button class="btn btn-primary" onclick="runReportAgent()">▶ Generate Report</button></div>
+        </div>
+        <div class="section-body" id="report-result">
+          <p style="color:var(--muted)">Click "Generate Report" to produce comprehensive analytics.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STAFF DIRECTORY ────────────────────────────────────────────────── -->
+    <div id="page-staff" class="page">
+      <div class="page-header">
+        <h1>🧑‍⚕️ Staff Directory</h1>
+        <p>All nursing staff — roles, qualifications, and shift assignments</p>
+      </div>
+      <div class="section">
+        <div class="section-header"><span>👥</span><h3>Nursing Team</h3></div>
+        <div class="section-body">
+          <div id="staff-grid" class="staff-grid">Loading staff...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VIOLATIONS ─────────────────────────────────────────────────────── -->
+    <div id="page-violations" class="page">
+      <div class="page-header">
+        <h1>🚨 Scheduling Violations</h1>
+        <p>All detected constraint violations — resolve before submitting for approval</p>
+      </div>
+      <div class="section" id="violations-section">
+        <div class="section-header">
+          <span>⚠️</span><h3>Active Violations</h3>
+          <div class="actions">
+            <button class="btn btn-secondary btn-sm" onclick="loadViolations()">🔄 Refresh</button>
+            <button class="btn btn-primary btn-sm" onclick="runValidateAgent();showPage('agent-validate')">Re-validate →</button>
+          </div>
+        </div>
+        <div class="section-body" id="violations-list">Loading...</div>
+      </div>
+    </div>
+
+    <!-- ── APPROVAL WORKFLOW ──────────────────────────────────────────────── -->
+    <div id="page-approval" class="page">
+      <div class="page-header">
+        <h1>✍️ Human Review & Approval Workflow</h1>
+        <p>Submit the roster for authorised manager review. AI-generated rosters must be approved before operational use.</p>
+      </div>
+
+      <div class="steps" id="approval-steps">
+        <div class="step done" id="step-1"><div class="step-circle">1</div><div class="step-label">Roster Generated</div></div>
+        <div class="step done" id="step-2"><div class="step-circle">2</div><div class="step-label">Validated</div></div>
+        <div class="step active" id="step-3"><div class="step-circle">3</div><div class="step-label">Submit for Review</div></div>
+        <div class="step" id="step-4"><div class="step-circle">4</div><div class="step-label">Manager Decision</div></div>
+        <div class="step" id="step-5"><div class="step-circle">5</div><div class="step-label">Operational</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="section">
+          <div class="section-header"><span>📤</span><h3>Submit for Manager Review</h3></div>
+          <div class="section-body">
+            <div class="form-group">
+              <label>Manager Name</label>
+              <input type="text" id="mgr-name" placeholder="e.g. Dr. Sarah Mitchell" value="Dr. Sarah Mitchell"/>
+            </div>
+            <div class="form-group">
+              <label>Submission Comments</label>
+              <textarea id="mgr-comments" placeholder="Add any notes for the reviewing manager...">Draft roster for 2-week period. Please review violations flagged by the AI validation agent before approval.</textarea>
+            </div>
+            <button class="btn btn-primary" onclick="submitForApproval()">📤 Submit for Review</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-header"><span>✍️</span><h3>Manager Decision</h3></div>
+          <div class="section-body">
+            <div id="approval-status-display">
+              <p style="color:var(--muted);font-size:13px">Submit the roster first to enable manager approval.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="approval-history-section">
+        <div class="section-header"><span>📜</span><h3>Approval History</h3></div>
+        <div class="section-body" id="approval-history">
+          <p style="color:var(--muted)">No approvals recorded yet.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ══ RESOLVE MODAL ══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="resolve-modal">
+  <div class="modal">
+    <h2>✅ Resolve Violation</h2>
+    <p>Describe the corrective action taken to resolve this scheduling violation.</p>
+    <input type="hidden" id="resolve-vid"/>
+    <div class="form-group">
+      <label>Resolution Notes</label>
+      <textarea id="resolve-notes" placeholder="e.g. Swapped shift with available RN James Wilson. Coverage confirmed."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('resolve-modal')">Cancel</button>
+      <button class="btn btn-success" onclick="resolveViolation()">Mark as Resolved</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST CONTAINER ════════════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().toLowerCase().replace(/\s+/g,'').includes(id.replace(/-/g,'').replace('agent',''))) {
+      n.classList.add('active');
+    }
+  });
+  // Lazy-load certain pages
+  if (id === 'staff') loadStaff();
+  if (id === 'violations') loadViolations();
+  if (id === 'roster') loadRosterGrid();
+  if (id === 'approval') loadApprovalStatus();
+  if (id === 'dashboard') loadDashboardSummary();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// API HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+async function api(url, opts={}) {
+  const res = await fetch(url, opts);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+}
+
+function showSpinner(containerId, message='Running AI agent...') {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.style.position = 'relative';
+  const overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.id = containerId + '-spinner';
+  overlay.innerHTML = `<div class="spinner"></div><p>${message}</p>`;
+  el.appendChild(overlay);
+}
+function hideSpinner(containerId) {
+  document.getElementById(containerId + '-spinner')?.remove();
+}
+
+function toast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadDashboardSummary() {
+  try {
+    const data = await api('/api/roster/summary');
+    document.getElementById('kpi-assignments').textContent = data.total_assignments;
+    document.getElementById('kpi-violations').textContent = data.open_violations;
+    document.getElementById('kpi-critical').textContent = data.critical_violations;
+
+    const st = data.roster_status;
+    const stEl = document.getElementById('kpi-status');
+    stEl.textContent = st.charAt(0).toUpperCase() + st.slice(1);
+    stEl.style.color = st === 'approved' ? 'var(--success)' : st === 'draft' ? 'var(--warning)' : 'var(--muted)';
+
+    const badgeEl = document.getElementById('roster-status-badge');
+    badgeEl.textContent = st.charAt(0).toUpperCase() + st.slice(1);
+    badgeEl.className = 'badge ' + (st === 'approved' ? 'badge-success' : 'badge-warning');
+
+    const periodEl = document.getElementById('roster-period');
+    const s = new Date(data.roster_start).toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    const e = new Date(data.roster_end).toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    periodEl.textContent = `${s} – ${e}`;
+
+    // Violation badge in sidebar
+    const vb = document.getElementById('viol-badge');
+    if (data.open_violations > 0) {
+      vb.textContent = data.open_violations;
+      vb.style.display = '';
+    } else {
+      vb.style.display = 'none';
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function loadDashboardInsights() {
+  const el = document.getElementById('ai-quick-insights');
+  el.innerHTML = '<div class="spinner" style="margin:0 auto;display:block"></div>';
+  try {
+    const data = await api('/api/agent/staffing-analysis');
+    el.innerHTML = `
+      <div class="ai-panel">
+        <div class="ai-panel-header"><span>🤖</span> IBM Granite — Staffing Insight</div>
+        <div class="ai-panel-body">${data.ai_insight || 'No insight available.'}</div>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--muted)">Could not load AI insights.</p>';
+  }
+}
+
+function buildPipelineSteps(statuses) {
+  const steps = [
+    {label:'Staffing Analysis', key:'staffing'},
+    {label:'Coverage Planning', key:'coverage'},
+    {label:'Roster Generation', key:'generation'},
+    {label:'Constraint Validation', key:'validation'},
+    {label:'Workload Fairness', key:'workload'},
+    {label:'Optimisation', key:'optimisation'},
+    {label:'Reporting', key:'reporting'},
+  ];
+  const el = document.getElementById('pipeline-steps');
+  el.innerHTML = steps.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${statuses[s.key] === 'done' ? 'var(--success)' : statuses[s.key] === 'running' ? 'var(--warning)' : 'var(--border)'}"></div>
+      <span style="font-size:13px;color:${statuses[s.key] === 'done' ? 'var(--text)' : 'var(--muted)'}">${s.label}</span>
+      <span style="margin-left:auto;font-size:11px;color:${statuses[s.key] === 'done' ? 'var(--success)' : 'var(--muted)'}">
+        ${statuses[s.key] === 'done' ? '✓ Complete' : statuses[s.key] === 'running' ? '⏳ Running' : '—'}
+      </span>
+    </div>`).join('');
+}
+
+const pipelineStatus = {};
+
+async function runAllAgents() {
+  toast('🚀 Running all AI agents...', 'info');
+  const agentFns = [
+    {key:'staffing', fn: runStaffingAgent},
+    {key:'coverage', fn: runCoverageAgent},
+    {key:'generation', fn: runGenerateAgent},
+    {key:'validation', fn: runValidateAgent},
+    {key:'workload', fn: runWorkloadAgent},
+    {key:'optimisation', fn: runOptimiseAgent},
+    {key:'reporting', fn: runReportAgent},
+  ];
+  for (const a of agentFns) {
+    pipelineStatus[a.key] = 'running';
+    buildPipelineSteps(pipelineStatus);
+    await a.fn();
+    pipelineStatus[a.key] = 'done';
+    buildPipelineSteps(pipelineStatus);
+  }
+  await loadDashboardSummary();
+  await loadDashboardInsights();
+  toast('✅ All agents completed!', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AGENT RUNNERS
+// ══════════════════════════════════════════════════════════════════════════════
+async function runStaffingAgent() {
+  showSpinner('staffing-section', 'Analysing staffing data...');
+  try {
+    const d = await api('/api/agent/staffing-analysis');
+    document.getElementById('staffing-result').innerHTML = `
+      <div class="cards-row">
+        <div class="card"><div class="card-title">Total Staff</div><div class="card-value">${d.total}</div></div>
+        <div class="card"><div class="card-title">Registered Nurses</div><div class="card-value" style="color:var(--accent)">${d.rn_count}</div></div>
+        <div class="card"><div class="card-title">Enrolled Nurses</div><div class="card-value" style="color:var(--accent2)">${d.en_count}</div></div>
+        <div class="card"><div class="card-title">Senior RNs</div><div class="card-value" style="color:var(--success)">${d.senior_count}</div></div>
+        <div class="card"><div class="card-title">Avg Contract Hrs</div><div class="card-value">${d.avg_hours}</div></div>
+      </div>
+      <h4 style="margin-bottom:10px;color:var(--muted);font-size:12px;text-transform:uppercase">Skills Available</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
+        ${d.skills.map(s=>`<span class="skill-tag">${s}</span>`).join('')}
+      </div>
+      <div class="ai-panel">
+        <div class="ai-panel-header"><span>🤖</span> IBM Granite AI — Staffing Analysis</div>
+        <div class="ai-panel-body">${d.ai_insight}</div>
+      </div>`;
+    toast('✅ Staffing analysis complete', 'success');
+  } catch(e) {
+    document.getElementById('staffing-result').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    toast('❌ Staffing analysis failed', 'error');
+  }
+  hideSpinner('staffing-section');
+}
+
+async function runCoverageAgent() {
+  showSpinner('coverage-section', 'Planning shift coverage...');
+  try {
+    const d = await api('/api/agent/coverage-planning');
+    const byShift = {};
+    for (const r of d.requirements) {
+      if (!byShift[r.shift_name]) byShift[r.shift_name] = {min_rn:0,min_en:0,total:0,days:0};
+      byShift[r.shift_name].min_rn = r.min_rn;
+      byShift[r.shift_name].min_en = r.min_en;
+      byShift[r.shift_name].total = r.total_required;
+      byShift[r.shift_name].days++;
+    }
+    document.getElementById('coverage-result').innerHTML = `
+      <div class="cards-row">
+        <div class="card"><div class="card-title">Roster Days</div><div class="card-value">${d.total_days}</div></div>
+        <div class="card"><div class="card-title">Total Slots Required</div><div class="card-value" style="color:var(--accent)">${d.total_required_slots}</div></div>
+      </div>
+      <h4 style="margin:16px 0 10px;font-size:13px">Shift Coverage Requirements</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Shift</th><th>Min RN</th><th>Min EN</th><th>Total/Day</th><th>Daily Time</th></tr></thead>
+          <tbody>
+            ${Object.entries(byShift).map(([name,v])=>`
+              <tr><td><strong>${name}</strong></td><td>${v.min_rn}</td><td>${v.min_en}</td>
+              <td><strong>${v.total}</strong></td><td>${name==='Morning'?'07:00–15:00':name==='Afternoon'?'15:00–23:00':name==='Night'?'23:00–07:00':'07:00–19:00'}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="ai-panel" style="margin-top:16px">
+        <div class="ai-panel-header"><span>🤖</span> IBM Granite AI — Coverage Assessment</div>
+        <div class="ai-panel-body">${d.ai_insight}</div>
+      </div>`;
+    toast('✅ Coverage plan complete', 'success');
+  } catch(e) {
+    document.getElementById('coverage-result').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    toast('❌ Coverage planning failed', 'error');
+  }
+  hideSpinner('coverage-section');
+}
+
+async function runGenerateAgent() {
+  showSpinner('generate-section', 'Generating draft roster...');
+  try {
+    const d = await api('/api/agent/generate-roster');
+    const distEntries = Object.entries(d.shift_distribution || {});
+    document.getElementById('generate-result').innerHTML = `
+      <div class="cards-row">
+        <div class="card"><div class="card-title">Total Assignments</div><div class="card-value" style="color:var(--success)">${d.total_assignments}</div></div>
+        <div class="card"><div class="card-title">Period</div><div class="card-value" style="font-size:16px;margin-top:4px">${d.roster_start}</div><div class="card-sub">to ${d.roster_end}</div></div>
+        <div class="card"><div class="card-title">Status</div><div class="card-value" style="font-size:16px;margin-top:4px;color:var(--warning)">Draft</div></div>
+      </div>
+      <p style="color:var(--success);font-size:13px;margin:12px 0">✅ ${d.message}</p>
+      <h4 style="margin-bottom:10px;font-size:13px;color:var(--muted)">Shift Distribution per Staff Member</h4>
+      <div style="max-height:300px;overflow-y:auto">
+        ${distEntries.map(([sid,count])=>`
+          <div class="workload-row">
+            <span class="workload-name">Staff #${sid}</span>
+            <div class="workload-bar-wrap"><div class="workload-bar" style="width:${Math.min(100,count/10*100)}%"></div></div>
+            <span class="workload-count">${count}</span>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="showPage('roster')">📅 View Roster Grid →</button>
+        <button class="btn btn-secondary" onclick="showPage('agent-validate')">✅ Validate →</button>
+      </div>`;
+    toast('✅ Roster generated successfully', 'success');
+    loadDashboardSummary();
+  } catch(e) {
+    document.getElementById('generate-result').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    toast('❌ Roster generation failed', 'error');
+  }
+  hideSpinner('generate-section');
+}
+
+async function runValidateAgent() {
+  showSpinner('validate-section', 'Validating scheduling constraints...');
+  try {
+    const d = await api('/api/agent/validate');
+    const viols = d.violations || [];
+    document.getElementById('validate-result').innerHTML = `
+      <div class="cards-row">
+        <div class="card"><div class="card-title">Total Violations</div><div class="card-value" style="color:${d.total_violations>0?'var(--danger)':'var(--success)'}">${d.total_violations}</div></div>
+        <div class="card"><div class="card-title">Critical</div><div class="card-value" style="color:var(--danger)">${d.critical}</div></div>
+        <div class="card"><div class="card-title">Warnings</div><div class="card-value" style="color:var(--warning)">${d.warnings}</div></div>
+      </div>
+      ${viols.length === 0 ? '<div style="color:var(--success);font-size:14px;margin:16px 0">✅ No violations found! Roster meets all constraints.</div>' :
+        viols.slice(0,15).map(v=>`
+          <div class="violation-item ${v.severity}">
+            <div class="violation-icon">${v.severity==='critical'?'🔴':'🟡'}</div>
+            <div class="violation-body">
+              <h4>${v.type}</h4>
+              <p>${v.description}</p>
+            </div>
+          </div>`).join('') + (viols.length > 15 ? `<p style="color:var(--muted);font-size:13px;margin-top:8px">...and ${viols.length-15} more. See <a href="#" onclick="showPage('violations');return false" style="color:var(--accent)">Violations page</a>.</p>` : '')}
+      <div class="ai-panel">
+        <div class="ai-panel-header"><span>🤖</span> IBM Granite AI — Violation Analysis</div>
+        <div class="ai-panel-body">${d.ai_insight}</div>
+      </div>`;
+    toast(`${d.total_violations > 0 ? '⚠️' : '✅'} Validation complete: ${d.total_violations} violations found`, d.total_violations > 0 ? 'error' : 'success');
+    loadDashboardSummary();
+  } catch(e) {
+    document.getElementById('validate-result').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    toast('❌ Validation failed', 'error');
+  }
+  hideSpinner('validate-section');
+}
+
+async function runWorkloadAgent() {
+  showSpinner('workload-section', 'Analysing workload fairness...');
+  try {
+    const d = await api('/api/agent/workload-fairness');
+    const ss = d.staff_summary || [];
+    const maxShifts = d.max_shifts || 1;
+    document.getElementById('workload-result').innerHTML = `
+      <div class="cards-row">
+        <div class="card"><div class="card-title">Fairness Score</div><div class="card-value" style="color:${d.fairness_score>=80?'var(--success)':d.fairness_score>=60?'var(--warning)':'var(--danger)'}">${d.fairness_score}%</div><div class="progress"><div class="progress-bar ${d.fairness_score>=80?'success':d.fairness_score>=60?'warning':'danger'}" style="width:${d.fairness_score}%"></div></div></div>
+        <div class="card"><div class="card-title">Avg Shifts</div><div class="card-value">${d.avg_shifts}</div></div>
+        <div class="card"><div class="card-title">Max Shifts</div><div class="card-value" style="color:var(--warning)">${d.max_shifts}</div></div>
+        <div class="card"><div class="card-title">Min Shifts</div><div class="card-value">${d.min_shifts}</div></div>
+        <div class="card"><div class="card-title">Night Shifts (avg)</div><div class="card-value">${d.night_shifts?.avg||0}</div></div>
+        <div class="card"><div class="card-title">Weekend Shifts (avg)</div><div class="card-value">${d.weekend_shifts?.avg||0}</div></div>
+      </div>
+      <div style="margin-top:16px">
+        <h4 style="font-size:13px;margin-bottom:12px;color:var(--muted)">Shift Count per Staff Member</h4>
+        ${ss.map(s=>`
+          <div class="workload-row">
+            <span class="workload-name" title="${s.name}">${s.name}</span>
+            <div class="workload-bar-wrap">
+              <div class="workload-bar" style="width:${(s.total_shifts/maxShifts)*100}%;background:${s.imbalance==='Over-assigned'?'var(--danger)':s.imbalance==='Under-assigned'?'var(--warning)':'var(--success)'}"></div>
+            </div>
+            <span class="workload-count">${s.total_shifts}</span>
+            <span class="workload-type"><span class="badge ${s.imbalance==='Over-assigned'?'badge-danger':s.imbalance==='Under-assigned'?'badge-warning':'badge-success'}">${s.imbalance}</span></span>
+          </div>`).join('')}
+      </div>
+      <div class="ai-panel" style="margin-top:16px">
+        <div class="ai-panel-header"><span>🤖</span> IBM Granite AI — Fairness Assessment</div>
+        <div class="ai-panel-body">${d.ai_insight}</div>
+      </div>`;
+    toast('✅ Workload analysis complete', 'success');
+  } catch(e) {
+    document.getElementById('workload-result').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    toast('❌ Workload analysis failed', 'error');
+  }
+  hideSpinner('workload-section');
+}
+
+async function runOptimiseAgent() {
+  showSpinner('optimise-section', 'Generating optimisation recommendations...');
+  try {
+    const d = await api('/api/agent/optimise');
+    const recs = d.recommendations || [];
+    document.getElementById('optimise-result').innerHTML = `
+      <div class="cards-row">
+        <div class="card"><div class="card-title">Recommendations</div><div class="card-value" style="color:var(--accent)">${d.total_recommendations}</div></div>
+      </div>
+      <p style="color:var(--muted);font-size:13px;margin:12px 0">${d.summary}</p>
+      ${recs.map(r=>`
+        <div class="rec-card">
+          <div class="rec-header">
+            <span style="font-size:16px">${r.type.includes('Coverage')?'🔴':r.type.includes('Rest')?'🟠':r.type.includes('Consecutive')?'🟡':r.type.includes('Night')?'🌙':'⚖️'}</span>
+            <strong style="font-size:13px">${r.type}</strong>
+            <span class="rec-priority priority-${r.priority.toLowerCase()}">${r.priority}</span>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:8px">${r.description}</p>
+          <div style="background:rgba(79,124,247,.07);border-radius:6px;padding:10px;font-size:12px">
+            <strong style="color:var(--accent)">Recommended Action:</strong> ${r.action}
+          </div>
+          <p style="font-size:11px;color:var(--success);margin-top:8px">📈 ${r.estimated_impact}</p>
+        </div>`).join('')}
+      <div class="ai-panel" style="margin-top:16px">
+        <div class="ai-panel-header"><span>🤖</span> IBM Granite AI — Optimisation Strategy</div>
+        <div class="ai-panel-body">${d.ai_insight}</div>
+      </div>`;
+    toast('✅ Optimisation recommendations generated', 'success');
+  } catch(e) {
+    document.getElementById('optimise-result').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    toast('❌ Optimisation failed', 'error');
+  }
+  hideSpinner('optimise-section');
+}
+
+async function runReportAgent() {
+  showSpinner('report-section', 'Generating comprehensive report...');
+  try {
+    const d = await api('/api/agent/report');
+    const rs = d.roster_summary;
+    const cr = d.constraint_report;
+    const wr = d.workload_report;
+    const or2 = d.optimisation_report;
+    document.getElementById('report-result').innerHTML = `
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(event,'tab-coverage')">📅 Coverage Matrix</div>
+        <div class="tab" onclick="switchTab(event,'tab-violations')">🚨 Violations</div>
+        <div class="tab" onclick="switchTab(event,'tab-workload')">⚖️ Workload Summary</div>
+        <div class="tab" onclick="switchTab(event,'tab-recs')">🔧 Recommendations</div>
+      </div>
+      <div id="tab-coverage" class="tab-panel active">
+        <h4 style="margin-bottom:12px;font-size:13px">Roster Coverage Matrix — ${rs.roster_days} Days</h4>
+        ${buildCoverageMatrix(rs.coverage_matrix)}
+      </div>
+      <div id="tab-violations" class="tab-panel">
+        <div class="cards-row">
+          <div class="card"><div class="card-title">Total</div><div class="card-value">${cr.total_violations}</div></div>
+          <div class="card"><div class="card-title">Critical</div><div class="card-value" style="color:var(--danger)">${cr.critical}</div></div>
+          <div class="card"><div class="card-title">Warnings</div><div class="card-value" style="color:var(--warning)">${cr.warnings}</div></div>
+        </div>
+        ${(cr.violations||[]).map(v=>`
+          <div class="violation-item ${v.severity}">
+            <div class="violation-icon">${v.severity==='critical'?'🔴':'🟡'}</div>
+            <div class="violation-body"><h4>${v.type}</h4><p>${v.description}</p></div>
+          </div>`).join('') || '<p style="color:var(--success)">✅ No violations</p>'}
+      </div>
+      <div id="tab-workload" class="tab-panel">
+        <div class="cards-row">
+          <div class="card"><div class="card-title">Fairness Score</div><div class="card-value" style="color:var(--success)">${wr.fairness_score}%</div></div>
+          <div class="card"><div class="card-title">Avg Shifts</div><div class="card-value">${wr.avg_shifts}</div></div>
+          <div class="card"><div class="card-title">Std Deviation</div><div class="card-value">${wr.std_dev}</div></div>
+        </div>
+        <div class="table-wrap" style="margin-top:16px">
+          <table>
+            <thead><tr><th>Staff</th><th>Role</th><th>Total Shifts</th><th>Hours</th><th>Night</th><th>Weekend</th><th>Status</th></tr></thead>
+            <tbody>
+              ${(wr.staff_summary||[]).map(s=>`
+                <tr><td>${s.name}</td><td><span class="badge badge-info">${s.role}</span></td>
+                <td><strong>${s.total_shifts}</strong></td><td>${s.total_hours}h</td>
+                <td>${s.night_shifts}</td><td>${s.weekend_shifts}</td>
+                <td><span class="badge ${s.imbalance==='Over-assigned'?'badge-danger':s.imbalance==='Under-assigned'?'badge-warning':'badge-success'}">${s.imbalance}</span></td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div id="tab-recs" class="tab-panel">
+        <p style="color:var(--muted);font-size:13px;margin-bottom:16px">${or2.summary}</p>
+        ${(or2.recommendations||[]).map(r=>`
+          <div class="rec-card">
+            <div class="rec-header"><strong>${r.type}</strong><span class="rec-priority priority-${r.priority.toLowerCase()}">${r.priority}</span></div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:8px">${r.description}</p>
+            <div style="background:rgba(79,124,247,.07);border-radius:6px;padding:10px;font-size:12px">${r.action}</div>
+          </div>`).join('')}
+      </div>`;
+    toast('✅ Report generated', 'success');
+  } catch(e) {
+    document.getElementById('report-result').innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    toast('❌ Report generation failed', 'error');
+  }
+  hideSpinner('report-section');
+}
+
+function switchTab(e, tabId) {
+  const parent = e.target.closest('.section-body, .page, [id$="-result"]') || document;
+  const panels = parent.querySelectorAll ? parent.querySelectorAll('.tab-panel') : document.querySelectorAll('.tab-panel');
+  const tabs = e.target.closest('.tabs').querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  panels.forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(tabId)?.classList.add('active');
+}
+
+function buildCoverageMatrix(matrix) {
+  const dates = Object.keys(matrix).sort();
+  if (dates.length === 0) return '<p style="color:var(--muted)">No coverage data.</p>';
+  const shifts = ['Morning','Afternoon','Night','Long Day'];
+  return `<div class="roster-grid"><table class="roster-table">
+    <thead><tr><th>Date</th>${shifts.map(s=>`<th>${s}</th>`).join('')}</tr></thead>
+    <tbody>
+    ${dates.map(d => `<tr>
+      <td style="font-weight:700;white-space:nowrap">${new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</td>
+      ${shifts.map(s => {
+        const staff = (matrix[d] || {})[s] || [];
+        if (staff.length === 0) return `<td><span class="empty-cell">—</span></td>`;
+        return `<td><div class="shift-cell">${staff.map(st=>
+          `<span class="staff-tag ${st.role==='RN'&&st.grade?.includes('Senior')?'rn-senior':st.role==='RN'?'rn-junior':'en'}">${st.name.split(' ')[0]} (${st.role})</span>`
+        ).join('')}</div></td>`;
+      }).join('')}
+    </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ROSTER GRID
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadRosterGrid() {
+  const container = document.getElementById('roster-grid-container');
+  if (!container) return;
+  container.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:20px;color:var(--muted)"><div class="spinner"></div> Loading roster...</div>';
+  try {
+    const d = await api('/api/roster');
+    if (!d.dates || d.dates.length === 0) {
+      container.innerHTML = '<p style="color:var(--muted)">No roster data. Please generate a roster first.</p>';
+      return;
+    }
+    const shifts = d.shifts;
+    const grid   = d.grid;
+    let html = `<table class="roster-table">
+      <thead><tr><th>Date / Day</th>${shifts.map(s=>`<th>${s}</th>`).join('')}</tr></thead>
+      <tbody>`;
+    for (const dateStr of d.dates) {
+      const dayLabel = new Date(dateStr).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+      const isWeekend = new Date(dateStr).getDay() === 0 || new Date(dateStr).getDay() === 6;
+      html += `<tr ${isWeekend ? 'style="background:rgba(79,124,247,.04)"' : ''}>
+        <td style="font-weight:700;white-space:nowrap">${isWeekend?'🌐 ':''} ${dayLabel}</td>`;
+      for (const shift of shifts) {
+        const staffList = (grid[dateStr] || {})[shift] || [];
+        if (staffList.length === 0) {
+          html += `<td><span class="empty-cell badge badge-danger" style="font-size:10px">⚠ Unfilled</span></td>`;
+        } else {
+          html += `<td><div class="shift-cell">${staffList.map(s =>
+            `<span class="staff-tag ${s.role==='RN'&&s.grade?.includes('Senior')?'rn-senior':s.role==='RN'?'rn-junior':'en'}" title="${s.grade}">${s.name.split(' ')[0]} (${s.role})</span>`
+          ).join('')}</div></td>`;
+        }
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = `<p style="color:var(--danger)">Error loading roster: ${e.message}</p>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STAFF DIRECTORY
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadStaff() {
+  const el = document.getElementById('staff-grid');
+  el.innerHTML = '<div class="spinner" style="margin:0 auto;display:block"></div>';
+  try {
+    const staff = await api('/api/staff');
+    el.innerHTML = staff.map(s => {
+      const initials = s.name.split(' ').map(n=>n[0]).join('').slice(0,2);
+      const skills = (s.skills || '').split(',').filter(Boolean);
+      return `<div class="staff-card" onclick="loadStaffDetail(${s.id}, '${s.name}')">
+        <div class="staff-avatar">${initials}</div>
+        <div class="staff-name">${s.name}</div>
+        <div class="staff-role">${s.role} · ${s.grade}</div>
+        <div class="staff-role" style="margin-top:4px">📞 ${s.phone || 'N/A'}</div>
+        <div class="staff-skills">${skills.slice(0,3).map(sk=>`<span class="skill-tag">${sk.trim()}</span>`).join('')}${skills.length>3?`<span class="skill-tag">+${skills.length-3}</span>`:''}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+  }
+}
+
+async function loadStaffDetail(id, name) {
+  try {
+    const d = await api(`/api/staff/${id}`);
+    const modal = document.getElementById('resolve-modal');
+    // Reuse resolve modal for staff detail
+    modal.querySelector('h2').textContent = `🧑‍⚕️ ${name}`;
+    modal.querySelector('p').textContent = `${d.staff.role} · ${d.staff.grade} · ${d.staff.contract_hours}h/week`;
+    modal.querySelector('.form-group').innerHTML = `
+      <label>Scheduled Shifts (${d.roster.length})</label>
+      <div style="max-height:200px;overflow-y:auto;background:var(--surface);border-radius:6px;padding:8px">
+        ${d.roster.length === 0 ? '<span style="color:var(--muted)">No shifts assigned</span>' :
+          d.roster.map(r=>`<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <strong>${r.roster_date}</strong> — ${r.shift_name} (${r.start_time}–${r.end_time})
+            <span class="badge ${r.status==='approved'?'badge-success':'badge-warning'}" style="margin-left:6px">${r.status}</span>
+          </div>`).join('')}
+      </div>`;
+    modal.querySelector('.modal-actions').innerHTML = `<button class="btn btn-secondary" onclick="closeModal('resolve-modal')">Close</button>`;
+    modal.classList.add('open');
+  } catch(e) { toast('Error loading staff: '+e.message,'error'); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VIOLATIONS
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadViolations() {
+  const el = document.getElementById('violations-list');
+  if (!el) return;
+  try {
+    const viols = await api('/api/violations');
+    if (viols.length === 0) {
+      el.innerHTML = '<p style="color:var(--success);font-size:14px">✅ No active violations.</p>';
+      return;
+    }
+    el.innerHTML = viols.map(v=>`
+      <div class="violation-item ${v.severity}" id="viol-${v.id}">
+        <div class="violation-icon">${v.severity==='critical'?'🔴':'🟡'}</div>
+        <div class="violation-body" style="flex:1">
+          <h4>${v.violation_type}</h4>
+          <p>${v.description}</p>
+        </div>
+        <div class="violation-actions">
+          ${v.resolved ? '<span class="badge badge-success">Resolved</span>' :
+            `<button class="btn btn-success btn-sm" onclick="openResolveModal(${v.id})">Resolve</button>`}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+  }
+}
+
+function openResolveModal(vid) {
+  document.getElementById('resolve-vid').value = vid;
+  document.getElementById('resolve-notes').value = '';
+  const modal = document.getElementById('resolve-modal');
+  modal.querySelector('h2').textContent = '✅ Resolve Violation';
+  modal.querySelector('p').textContent = 'Describe the corrective action taken.';
+  modal.querySelector('.form-group').innerHTML = `
+    <label>Resolution Notes</label>
+    <textarea id="resolve-notes" placeholder="e.g. Swapped shift with available colleague..."></textarea>`;
+  modal.querySelector('.modal-actions').innerHTML = `
+    <button class="btn btn-secondary" onclick="closeModal('resolve-modal')">Cancel</button>
+    <button class="btn btn-success" onclick="resolveViolation()">Mark as Resolved</button>`;
+  modal.classList.add('open');
+}
+
+async function resolveViolation() {
+  const vid   = document.getElementById('resolve-vid').value;
+  const notes = document.getElementById('resolve-notes').value;
+  if (!notes.trim()) { toast('Please add resolution notes','error'); return; }
+  try {
+    await api(`/api/violations/${vid}/resolve`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({resolution_notes: notes}),
+    });
+    closeModal('resolve-modal');
+    toast('✅ Violation resolved','success');
+    loadViolations();
+    loadDashboardSummary();
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// APPROVAL WORKFLOW
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadApprovalStatus() {
+  try {
+    const d = await api('/api/approval/status');
+    const el = document.getElementById('approval-status-display');
+    if (d.status === 'not_submitted' || !d.id) {
+      el.innerHTML = '<p style="color:var(--muted);font-size:13px">No roster submitted for approval yet.</p>';
+      return;
+    }
+    const isPending = d.status === 'pending';
+    el.innerHTML = `
+      <div style="margin-bottom:16px">
+        <span class="badge ${d.status==='approved'?'badge-success':d.status==='rejected'?'badge-danger':'badge-warning'}" style="font-size:13px;padding:6px 14px">
+          ${d.status.toUpperCase()}
+        </span>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px">Submitted for: <strong>${d.manager_name}</strong></p>
+        ${d.approved_at ? `<p style="font-size:12px;color:var(--muted)">Decision at: ${d.approved_at}</p>` : ''}
+        ${d.comments ? `<p style="font-size:12px;color:var(--muted);margin-top:4px">Notes: ${d.comments}</p>` : ''}
+      </div>
+      ${isPending ? `
+        <div class="form-group">
+          <label>Manager Name</label>
+          <input id="approval-mgr" value="${d.manager_name||''}" />
+        </div>
+        <div class="form-group">
+          <label>Decision Comments</label>
+          <textarea id="approval-comments" placeholder="Review notes..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-success" onclick="makeDecision(${d.id},'approve')">✅ Approve Roster</button>
+          <button class="btn btn-danger" onclick="makeDecision(${d.id},'reject')">❌ Reject & Return</button>
+        </div>` : ''}`;
+
+    // Update steps
+    updateApprovalSteps(d.status);
+  } catch(e) { console.error(e); }
+}
+
+function updateApprovalSteps(status) {
+  const steps = ['step-1','step-2','step-3','step-4','step-5'];
+  steps.forEach((id,i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'step';
+    if (status === 'not_submitted' && i < 2) el.className = 'step done';
+    else if (status === 'pending' && i < 3) el.className = 'step done';
+    else if (status === 'pending' && i === 3) el.className = 'step active';
+    else if ((status === 'approved' || status === 'rejected') && i < 4) el.className = 'step done';
+    else if (status === 'approved' && i === 4) el.className = 'step done';
+    else if (status === 'rejected' && i === 4) el.className = 'step';
+  });
+}
+
+async function submitForApproval() {
+  const name     = document.getElementById('mgr-name').value;
+  const comments = document.getElementById('mgr-comments').value;
+  if (!name.trim()) { toast('Please enter manager name','error'); return; }
+  try {
+    const d = await api('/api/approval/submit', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({manager_name:name, comments}),
+    });
+    toast('📤 Roster submitted for review','success');
+    loadApprovalStatus();
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+async function makeDecision(aid, decision) {
+  const name     = document.getElementById('approval-mgr')?.value || 'Manager';
+  const comments = document.getElementById('approval-comments')?.value || '';
+  try {
+    const d = await api(`/api/approval/${aid}/decision`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({decision, manager_name:name, comments}),
+    });
+    toast(decision === 'approve' ? '✅ Roster APPROVED!' : '❌ Roster rejected', decision === 'approve' ? 'success' : 'error');
+    loadApprovalStatus();
+    loadDashboardSummary();
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  buildPipelineSteps({});
+  await loadDashboardSummary();
+  // Auto-trigger all agents on first load if no roster exists
+  const summary = await api('/api/roster/summary').catch(()=>({total_assignments:0}));
+  if (summary.total_assignments === 0) {
+    toast('🚀 Auto-generating initial roster...', 'info');
+    setTimeout(runAllAgents, 500);
+  }
+});
+</script>
+</body>
+</html>
